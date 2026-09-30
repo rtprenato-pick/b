@@ -1,5 +1,5 @@
 // --- CONFIGURAÇÃO DO JSONBIN ---
-const BIN_ID = '6abd57bfac6210605a066d22 '; // Ex: '65f8a123abc123456789'
+const BIN_ID = '6abd57bfac6210605a066d22'; // Ex: '65f8a123abc123456789'
 const API_KEY = '$2a$10$Ou3dLTtyVpyo5yy8ZYcedOJd42.3SyIritGLDH/cs60eFVjjjjDNS'; // Ex: '$2a$10$abcdefghijklmnopqrstuvwxyz'
 
 
