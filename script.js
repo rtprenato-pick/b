@@ -3,7 +3,7 @@ const BIN_ID = '6abd51fcac6210605a065b96'; // Ex: '65f8a123abc123456789'
 const API_KEY = '$2a$10$Ou3dLTtyVpyo5yy8ZYcedOJd42.3SyIritGLDH/cs60eFVjjjjDNS'; // Ex: '$2a$10$abcdefghijklmnopqrstuvwxyz'
 
 
-const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
 
 // Estado Local
 let shoppingItems = [];
