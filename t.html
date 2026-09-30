@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão JSONBin.io</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen p-6 font-sans">
+    <div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+        <h1 class="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-network-wired text-blue-600"></i> Testador de Conexão JSONBin
+        </h1>
+        <p class="text-sm text-gray-600 mb-6">Use esta ferramenta para validar suas credenciais do JSONBin.io e descobrir por que a sincronização não está funcionando.</p>
+
+        <form id="test-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">BIN ID</label>
+                <input type="text" id="bin-id" placeholder="Ex: 65f8a123abc123456789" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">X-Master-Key (API Key)</label>
+                <input type="password" id="api-key" placeholder="Ex: $2a$10$abcdef..." required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+                <button type="button" id="toggle-key" class="text-xs text-blue-600 mt-1 underline">Mostrar/Ocultar chave</button>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition flex justify-center items-center gap-2">
+                <i class="fa-solid fa-bolt"></i> Testar Conexão
+            </button>
+        </form>
+
+        <div id="logs" class="mt-6 hidden">
+            <h2 class="text-sm font-bold text-gray-700 mb-2">Resultado dos Testes:</h2>
+            <div id="log-container" class="bg-gray-900 text-gray-100 p-4 rounded-xl font-mono text-xs space-y-2 overflow-x-auto max-h-60"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('test-form');
+        const logContainer = document.getElementById('log-container');
+        const logsSection = document.getElementById('logs');
+        const toggleBtn = document.getElementById('toggle-key');
+        const apiKeyInput = document.getElementById('api-key');
+
+        toggleBtn.addEventListener('click', () => {
+            apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+        });
+
+        function addLog(msg, type = 'info') {
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warn: 'text-yellow-400'
+            };
+            const icon = {
+                info: 'ℹ️',
+                success: '✅',
+                error: '❌',
+                warn: '⚠️'
+            };
+            const div = document.createElement('div');
+            div.className = `${colors[type]} flex items-start gap-2`;
+            div.innerHTML = `<span>${icon[type]}</span> <span>${msg}</span>`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const binId = document.getElementById('bin-id').value.trim();
+            const apiKey = apiKeyInput.value.trim();
+
+            logsSection.classList.remove('hidden');
+            logContainer.innerHTML = '';
+
+            addLog('Iniciando testes de conexão...', 'info');
+
+            // 1. Validar formato visual básico das chaves
+            if (binId.length < 10) {
+                addLog('O BIN ID informado parece curto demais. Verifique o valor no painel do JSONBin.', 'warn');
+            }
+            if (!apiKey.startsWith('$2a$10$')) {
+                addLog('Aviso: Certifique-se de estar usando a "X-Master-Key" (costuma começar com $2a$10$).', 'warn');
+            }
+
+            // 2. Testar Leitura (GET)
+            addLog('Passo 1/2: Tentando LER dados do Bin (GET)...', 'info');
+            try {
+                const resRead = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                    method: 'GET',
+                    headers: { 'X-Master-Key': apiKey }
+                });
+
+                if (resRead.status === 200) {
+                    const dataRead = await resRead.json();
+                    addLog('Sucesso ao LER dados! Resposta recebida da nuvem.', 'success');
+                    addLog(`Conteúdo atual do Bin: ${JSON.stringify(dataRead.record)}`, 'info');
+                } else if (resRead.status === 401) {
+                    addLog('Erro 401 (Não Autorizado): A API Key (X-Master-Key) está incorreta.', 'error');
+                    return;
+                } else if (resRead.status === 404) {
+                    addLog('Erro 404 (Não Encontrado): O BIN ID informado não existe ou foi excluído.', 'error');
+                    return;
+                } else {
+                    addLog(`Erro inesperado na leitura. Código HTTP: ${resRead.status}`, 'error');
+                    return;
+                }
+            } catch (err) {
+                addLog(`Erro de rede/CORS ao tentar ler: ${err.message}`, 'error');
+                return;
+            }
+
+            // 3. Testar Escrita (PUT)
+            addLog('Passo 2/2: Tentando ESCREVER dados de teste no Bin (PUT)...', 'info');
+            try {
+                const testData = [{ test: true, timestamp: Date.now() }];
+                const resWrite = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': apiKey
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                if (resWrite.ok) {
+                    addLog('Sucesso ao ESCREVER na nuvem! Permissão de gravação confirmada.', 'success');
+                    addLog('Conexão 100% FUNCIONAL! Você pode usar essas credenciais no seu script principal.', 'success');
+                } else {
+                    addLog(`Falha ao gravar. Código HTTP: ${resWrite.status}`, 'error');
+                }
+            } catch (err) {
+                addLog(`Erro de rede/CORS ao tentar gravar: ${err.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
