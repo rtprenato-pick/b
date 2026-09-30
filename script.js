@@ -4,256 +4,207 @@ const API_KEY = '$2a$10$Ou3dLTtyVpyo5yy8ZYcedOJd42.3SyIritGLDH/cs60eFVjjjjDNS'; 
 
 
 
+// --------------------------------
 
-// Estado Local
-let shoppingItems = [];
+let items = [];
 let currentFilter = 'all';
 
-// Elementos do DOM
-const itemForm = document.getElementById('item-form');
-const itemNameInput = document.getElementById('item-name');
-const itemQtyInput = document.getElementById('item-qty');
-const itemPriceInput = document.getElementById('item-price');
-const itemCategoryInput = document.getElementById('item-category');
-const shoppingListEl = document.getElementById('shopping-list');
-const totalPriceEl = document.getElementById('total-price');
-const syncStatusEl = document.getElementById('sync-status');
-const searchInput = document.getElementById('search-input');
-const configWarning = document.getElementById('config-warning');
-const themeToggleBtn = document.getElementById('theme-toggle');
+let form, listContainer, totalPriceEl, syncStatusEl, configWarning;
 
-// ==========================================
-// INICIALIZAÇÃO
-// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    checkConfig();
-    setupTheme();
-    loadItemsFromCloud();
+    form = document.getElementById('item-form');
+    listContainer = document.getElementById('shopping-list');
+    totalPriceEl = document.getElementById('total-price');
+    syncStatusEl = document.getElementById('sync-status');
+    configWarning = document.getElementById('config-warning');
 
-    // Event Listeners
-    itemForm.addEventListener('submit', handleAddItem);
-    searchInput.addEventListener('input', renderList);
-    themeToggleBtn.addEventListener('click', toggleTheme);
+    loadItems();
+    initTheme();
 
-    // Filtros
+    if (form) {
+        form.addEventListener('submit', handleAddItem);
+    }
+
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.filter-btn').forEach(b => {
-                b.classList.remove('bg-brand-600', 'text-white');
-                b.classList.add('bg-gray-200', 'dark:bg-gray-700');
-            });
-            e.target.classList.remove('bg-gray-200', 'dark:bg-gray-700');
-            e.target.classList.add('bg-brand-600', 'text-white');
+            document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700');
+            e.target.className = 'filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-600 text-white';
             currentFilter = e.target.dataset.filter;
-            renderList();
+            render();
         });
     });
+
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', render);
+    }
 });
 
-// Valida se as chaves foram preenchidas
-function checkConfig() {
-    if (BIN_ID === "SEU_BIN_ID_AQUI" || API_KEY === "SUA_API_KEY_AQUI") {
-        configWarning.classList.remove('hidden');
-        syncStatusEl.textContent = "Status: Chaves não configuradas";
-        syncStatusEl.classList.add("text-red-500");
-    } else {
-        configWarning.classList.add('hidden');
+// Carregar Itens da Nuvem (Trata Arrays e Objetos do JSONBin)
+async function loadItems() {
+    if (!BIN_ID || BIN_ID === 'COLE_AQUI_O_SEU_BIN_ID') {
+        if (syncStatusEl) syncStatusEl.textContent = 'Status: Configuração pendente';
+        return;
     }
-}
 
-// ==========================================
-// COMUNICAÇÃO COM O JSONBIN (NUVEM)
-// ==========================================
-
-// Ler dados do JSONBin
-async function loadItemsFromCloud() {
-    if (BIN_ID === "SEU_BIN_ID_AQUI") return;
-
-    syncStatusEl.textContent = "Status: Sincronizando com a nuvem...";
+    if (syncStatusEl) syncStatusEl.textContent = 'Status: Sincronizando...';
     
     try {
-        const response = await fetch(API_URL, {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
             method: 'GET',
-            headers: {
-                'X-Master-Key': API_KEY
+            headers: { 
+                'X-Master-Key': API_KEY,
+                'Cache-Control': 'no-cache'
             }
         });
 
-        if (!response.ok) throw new Error("Erro ao carregar dados");
+        if (!res.ok) {
+            throw new Error(`Erro na API: ${res.status}`);
+        }
 
-        const data = await response.json();
+        const data = await res.json();
         
-        // Se a resposta for um array ou um objeto com record
-        const record = data.record;
-        shoppingItems = Array.isArray(record) ? record : (record.items || []);
+        // Trata o registo independentemente de ser Array direto ou contido no record
+        if (Array.isArray(data.record)) {
+            items = data.record;
+        } else if (typeof data.record === 'object' && data.record !== null) {
+            items = Object.values(data.record);
+        } else {
+            items = [];
+        }
 
-        syncStatusEl.textContent = "Status: Atualizado em tempo real";
-        syncStatusEl.className = "text-xs text-brand-600 dark:text-brand-500";
-        renderList();
-    } catch (error) {
-        console.error(error);
-        syncStatusEl.textContent = "Status: Erro ao carregar da nuvem";
-        syncStatusEl.className = "text-xs text-red-500";
+        if (syncStatusEl) syncStatusEl.textContent = 'Status: Sincronizado com a nuvem ✓';
+        render();
+    } catch (err) {
+        console.error('Erro ao carregar:', err);
+        if (syncStatusEl) syncStatusEl.textContent = 'Status: Erro ao carregar da nuvem';
+        items = JSON.parse(localStorage.getItem('minha_lista') || '[]');
+        render();
     }
 }
 
-// Escrever dados no JSONBin
-async function saveItemsToCloud() {
-    if (BIN_ID === "SEU_BIN_ID_AQUI") return;
+// Salvar Itens na Nuvem
+async function saveItems() {
+    localStorage.setItem('minha_lista', JSON.stringify(items));
+    if (!BIN_ID || BIN_ID === 'COLE_AQUI_O_SEU_BIN_ID') return;
 
-    syncStatusEl.textContent = "Status: Salvando...";
-
+    if (syncStatusEl) syncStatusEl.textContent = 'Status: Salvando...';
+    
     try {
-        const response = await fetch(API_URL, {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Master-Key': API_KEY
             },
-            body: JSON.stringify(shoppingItems)
+            body: JSON.stringify(items)
         });
 
-        if (!response.ok) throw new Error("Erro ao salvar");
-
-        syncStatusEl.textContent = "Status: Salvo na nuvem!";
-        syncStatusEl.className = "text-xs text-brand-600 dark:text-brand-500";
-    } catch (error) {
-        console.error(error);
-        syncStatusEl.textContent = "Status: Erro ao salvar alterações";
-        syncStatusEl.className = "text-xs text-red-500";
+        if (res.ok) {
+            if (syncStatusEl) syncStatusEl.textContent = 'Status: Sincronizado com a nuvem ✓';
+        } else {
+            throw new Error(`Erro ao salvar: ${res.status}`);
+        }
+    } catch (err) {
+        console.error('Erro ao salvar:', err);
+        if (syncStatusEl) syncStatusEl.textContent = 'Status: Erro ao salvar na nuvem';
     }
 }
-
-// ==========================================
-// OPERAÇÕES NA LISTA
-// ==========================================
 
 function handleAddItem(e) {
     e.preventDefault();
-
     const newItem = {
-        id: Date.now().toString(),
-        name: itemNameInput.value.trim(),
-        qty: parseFloat(itemQtyInput.value) || 1,
-        price: parseFloat(itemPriceInput.value) || 0,
-        category: itemCategoryInput.value,
+        id: Date.now(),
+        name: document.getElementById('item-name').value.trim(),
+        qty: parseFloat(document.getElementById('item-qty').value) || 1,
+        price: parseFloat(document.getElementById('item-price').value) || 0,
+        category: document.getElementById('item-category').value,
         completed: false
     };
 
-    shoppingItems.unshift(newItem);
-    
-    // Limpa o formulário
-    itemNameInput.value = '';
-    itemQtyInput.value = '1';
-    itemPriceInput.value = '';
-    itemNameInput.focus();
-
-    renderList();
-    saveItemsToCloud();
+    items.push(newItem);
+    form.reset();
+    document.getElementById('item-qty').value = '1';
+    render();
+    saveItems();
 }
 
-function toggleItemStatus(id) {
-    shoppingItems = shoppingItems.map(item => {
-        if (item.id === id) {
-            return { ...item, completed: !item.completed };
-        }
-        return item;
-    });
-    renderList();
-    saveItemsToCloud();
+function toggleItem(id) {
+    items = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+    render();
+    saveItems();
 }
 
 function deleteItem(id) {
-    shoppingItems = shoppingItems.filter(item => item.id !== id);
-    renderList();
-    saveItemsToCloud();
+    items = items.filter(item => item.id !== id);
+    render();
+    saveItems();
 }
 
-// ==========================================
-// RENDERIZAÇÃO DA INTERFACE
-// ==========================================
-
-function renderList() {
-    const searchTerm = searchInput.value.toLowerCase();
+function render() {
+    const searchInput = document.getElementById('search-input');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    if (!listContainer) return;
     
-    const filteredItems = shoppingItems.filter(item => {
+    listContainer.innerHTML = '';
+
+    const filteredItems = items.filter(item => {
+        if (!item || !item.name) return false;
         const matchesSearch = item.name.toLowerCase().includes(searchTerm);
-        
-        if (currentFilter === 'pending') return matchesSearch && !item.completed;
-        if (currentFilter === 'completed') return matchesSearch && item.completed;
-        return matchesSearch;
+        const matchesFilter = currentFilter === 'all' ? true : 
+                              currentFilter === 'completed' ? item.completed : !item.completed;
+        return matchesSearch && matchesFilter;
     });
 
-    shoppingListEl.innerHTML = '';
-
     if (filteredItems.length === 0) {
-        shoppingListEl.innerHTML = `
-            <div class="text-center py-8 text-gray-400">
-                <i class="fa-solid fa-cart-flatbed text-3xl mb-2"></i>
-                <p>Nenhum item encontrado.</p>
-            </div>`;
-    } else {
-        filteredItems.forEach(item => {
-            const itemEl = document.createElement('div');
-            itemEl.className = `flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700/50 transition ${item.completed ? 'opacity-50' : ''}`;
-            
-            const totalItemPrice = item.qty * item.price;
-            
-            itemEl.innerHTML = `
-                <div class="flex items-center gap-3 flex-1">
-                    <button onclick="toggleItemStatus('${item.id}')" class="text-xl text-gray-400 hover:text-brand-600 transition">
-                        <i class="fa-${item.completed ? 'solid fa-circle-check text-brand-600' : 'regular fa-circle'}"></i>
-                    </button>
-                    <div>
-                        <p class="font-semibold ${item.completed ? 'line-through text-gray-400 dark:text-gray-500' : ''}">
-                            ${item.name}
-                        </p>
-                        <div class="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span>${item.category}</span>
-                            <span>•</span>
-                            <span>Qtd: ${item.qty}</span>
-                            ${item.price > 0 ? `<span>• R$ ${item.price.toFixed(2)}/un</span>` : ''}
-                        </div>
+        listContainer.innerHTML = `<div class="text-center py-8 text-gray-400">Nenhum item encontrado</div>`;
+        calculateTotal();
+        return;
+    }
+
+    filteredItems.forEach(item => {
+        const el = document.createElement('div');
+        el.className = `flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm transition border-l-4 ${item.completed ? 'border-gray-400 opacity-60' : 'border-brand-500'}`;
+        
+        const itemTotal = ((item.qty || 1) * (item.price || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        el.innerHTML = `
+            <div class="flex items-center gap-3 cursor-pointer" onclick="toggleItem(${item.id})">
+                <input type="checkbox" ${item.completed ? 'checked' : ''} class="w-5 h-5 text-brand-600 rounded">
+                <div>
+                    <span class="font-semibold ${item.completed ? 'line-through text-gray-400' : ''}">${item.name}</span>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                        <span>${item.qty}x</span> • <span>${item.category}</span>
+                        ${item.price > 0 ? `• <span>R$ ${item.price.toFixed(2)} un.</span>` : ''}
                     </div>
                 </div>
-
-                <div class="flex items-center gap-3">
-                    ${totalItemPrice > 0 ? `<span class="font-bold text-sm">R$ ${totalItemPrice.toFixed(2)}</span>` : ''}
-                    <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 transition p-1">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            shoppingListEl.appendChild(itemEl);
-        });
-    }
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="font-bold text-sm ${item.completed ? 'text-gray-400' : 'text-brand-600 dark:text-brand-400'}">${itemTotal}</span>
+                <button onclick="deleteItem(${item.id})" class="text-gray-400 hover:text-red-500 p-1">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(el);
+    });
 
     calculateTotal();
 }
 
 function calculateTotal() {
-    const total = shoppingItems.reduce((acc, item) => {
-        return acc + (item.qty * (item.price || 0));
-    }, 0);
-
-    totalPriceEl.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    if (!totalPriceEl) return;
+    const total = items.reduce((acc, item) => acc + ((item.qty || 1) * (item.price || 0)), 0);
+    totalPriceEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Dark Mode Toggle
-function setupTheme() {
-    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+function initTheme() {
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
     }
-}
-
-function toggleTheme() {
-    if (document.documentElement.classList.contains('dark')) {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-    } else {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-    }
+    toggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+    });
 }
