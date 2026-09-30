@@ -1,8 +1,6 @@
 // --- CONFIGURAÇÃO DO JSONBIN ---
-const BIN_ID = '6abd57bfac6210605a066d22'; // Ex: '65f8a123abc123456789'
-const API_KEY = '$2a$10$Ou3dLTtyVpyo5yy8ZYcedOJd42.3SyIritGLDH/cs60eFVjjjjDNS'; // Ex: '$2a$10$abcdefghijklmnopqrstuvwxyz'
-
-
+const BIN_ID = '6abd57bfac6210605a066d22'; 
+const API_KEY = '$2a$10$Ou3dLTtyVpyo5yy8ZYcedOJd42.3SyIritGLDH/cs60eFVjjjjDNS'; 
 
 // --------------------------------
 
@@ -40,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Carregar Itens da Nuvem (Trata Arrays e Objetos do JSONBin)
+// Carregar Itens da Nuvem
 async function loadItems() {
     if (!BIN_ID || BIN_ID === 'COLE_AQUI_O_SEU_BIN_ID') {
         if (syncStatusEl) syncStatusEl.textContent = 'Status: Configuração pendente';
@@ -64,7 +62,6 @@ async function loadItems() {
 
         const data = await res.json();
         
-        // Trata o registo independentemente de ser Array direto ou contido no record
         if (Array.isArray(data.record)) {
             items = data.record;
         } else if (typeof data.record === 'object' && data.record !== null) {
@@ -95,7 +92,8 @@ async function saveItems() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Master-Key': API_KEY
+                'X-Master-Key': API_KEY,
+                'X-Bin-Versioning': 'false' // Impede erro de versionamento na conta gratuita
             },
             body: JSON.stringify(items)
         });
@@ -207,4 +205,86 @@ function initTheme() {
     toggle.addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');
     });
+}
+
+// --- FUNCIONALIDADES EXCEL (EXPORTAR E IMPORTAR) ---
+
+function exportToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert("A biblioteca do Excel ainda está a carregar ou foi bloqueada. Recarregue a página (Ctrl + F5).");
+        return;
+    }
+
+    if (!items || items.length === 0) {
+        alert("A sua lista está vazia! Adicione pelo menos um item antes de exportar.");
+        return;
+    }
+
+    try {
+        const excelData = items.map(item => ({
+            "Item": item.name || '',
+            "Quantidade": item.qty || 1,
+            "Preço Unitário (R$)": item.price || 0,
+            "Categoria": item.category || "Geral",
+            "Comprado": item.completed ? "Sim" : "Não"
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Lista de Compras");
+
+        XLSX.writeFile(workbook, "lista_de_compras.xlsx");
+    } catch (err) {
+        console.error("Erro ao gerar Excel:", err);
+        alert("Ocorreu um erro ao gerar o ficheiro Excel.");
+    }
+}
+
+function importFromExcel(event) {
+    if (typeof XLSX === 'undefined') {
+        alert("A biblioteca do Excel ainda está a carregar. Recarregue a página (Ctrl + F5).");
+        return;
+    }
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const importedJson = XLSX.utils.sheet_to_json(worksheet);
+
+            if (importedJson.length === 0) {
+                alert("O ficheiro Excel selecionado está vazio.");
+                return;
+            }
+
+            const newItems = importedJson.map((row, index) => ({
+                id: Date.now() + index,
+                name: String(row["Item"] || row["Nome"] || row["item"] || "Item sem nome").trim(),
+                qty: parseFloat(row["Quantidade"] || row["Qtd"] || row["qty"]) || 1,
+                price: parseFloat(row["Preço Unitário (R$)"] || row["Preço"] || row["price"]) || 0,
+                category: String(row["Categoria"] || row["category"] || "Geral").trim(),
+                completed: String(row["Comprado"] || row["completed"]).toLowerCase() === "sim" || row["Comprado"] === true
+            }));
+
+            items = [...items, ...newItems];
+
+            render();
+            saveItems();
+
+            alert(`${newItems.length} itens importados com sucesso!`);
+            event.target.value = '';
+        } catch (err) {
+            console.error("Erro ao importar Excel:", err);
+            alert("Erro ao ler o ficheiro Excel. Verifique a estrutura do ficheiro.");
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
 }
