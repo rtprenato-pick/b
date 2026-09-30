@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras Inteligente</title>
+    <!-- Tailwind CSS para Estilização Modernizada -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-200">
+
+    <div class="max-w-2xl mx-auto p-4 sm:p-6">
+        
+        <!-- Cabeçalho -->
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-brand-600 dark:text-brand-500 flex items-center gap-2">
+                    <i class="fa-solid font-bold fa-basket-shopping"></i> Lista de Compras
+                </h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400" id="sync-status">Status: Carregando dados...</p>
+            </div>
+            <button id="theme-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition">
+                <i class="fa-solid fa-moon dark:hidden"></i>
+                <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+            </button>
+        </header>
+
+        <!-- Configuração de Chaves (Aviso caso não estejam preenchidas) -->
+        <div id="config-warning" class="hidden mb-6 p-4 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 rounded-xl text-sm">
+            <p class="font-bold flex items-center gap-2 mb-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> Configuração do JSONBin Pendente
+            </p>
+            <p>Por favor, edite este arquivo (<code>index.html</code>) no seu repositório e substitua as variáveis <strong>BIN_ID</strong> e <strong>API_KEY</strong> com suas chaves do <a href="https://jsonbin.io" target="_blank" class="underline font-semibold">jsonbin.io</a> para ativar o salvamento na nuvem.</p>
+        </div>
+
+        <!-- Formulário de Adicionar Item -->
+        <form id="item-form" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6 transition">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <input type="text" id="item-name" placeholder="Nome do item (ex: Leite)" required class="sm:col-span-6 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                
+                <input type="number" id="item-qty" placeholder="Qtd" value="1" min="0.1" step="any" required class="sm:col-span-3 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                
+                <input type="number" id="item-price" placeholder="R$ Unid." min="0" step="0.01" class="sm:col-span-3 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div class="flex gap-2 mt-3">
+                <select id="item-category" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="Geral">📦 Geral</option>
+                    <option value="Hortifruti">🍎 Hortifruti</option>
+                    <option value="Laticínios">🧀 Laticínios / Frios</option>
+                    <option value="Padaria">🍞 Padaria</option>
+                    <option value="Açougue">🥩 Açougue</option>
+                    <option value="Bebidas">🧃 Bebidas</option>
+                    <option value="Limpeza">🧹 Limpeza</option>
+                    <option value="Higiene">🧴 Higiene</option>
+                </select>
+                
+                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2 rounded-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add
+                </button>
+            </div>
+        </form>
+
+        <!-- Filtros e Busca -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-4 justify-between items-center">
+            <input type="text" id="search-input" placeholder="🔍 Buscar na lista..." class="w-full sm:w-1/2 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm">
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button data-filter="all" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-600 text-white">Todos</button>
+                <button data-filter="pending" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700">Pendentes</button>
+                <button data-filter="completed" class="filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700">Comprados</button>
+            </div>
+        </div>
+
+        <!-- Lista de Itens -->
+        <div id="shopping-list" class="space-y-2 mb-6">
+            <!-- Itens serão gerados via JS -->
+        </div>
+
+        <!-- Total do Carrinho -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex justify-between items-center font-bold text-lg">
+            <span>Total Estimado:</span>
+            <span id="total-price" class="text-brand-600 dark:text-brand-500">R$ 0,00</span>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO DO JSONBIN ---
+        const BIN_ID = 'SEU_BIN_ID_AQUI'; // Ex: '65f8a123abc123456789'
+        const API_KEY = 'SUA_API_KEY_AQUI'; // Ex: '$2a$10$abcdefghijklmnopqrstuvwxyz'
+        // --------------------------------
+
+        let items = [];
+        let currentFilter = 'all';
+
+        // Elementos DOM
+        const form = document.getElementById('item-form');
+        const listContainer = document.getElementById('shopping-list');
+        const totalPriceEl = document.getElementById('total-price');
+        const syncStatusEl = document.getElementById('sync-status');
+        const configWarning = document.getElementById('config-warning');
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConfig();
+            loadItems();
+            initTheme();
+        });
+
+        function checkConfig() {
+            if (BIN_ID === 'SEU_BIN_ID_AQUI' || API_KEY === 'SUA_API_KEY_AQUI') {
+                configWarning.classList.remove('hidden');
+            }
+        }
+
+        // Carregar Itens da Nuvem
+        async function loadItems() {
+            if (BIN_ID === 'SEU_BIN_ID_AQUI') {
+                items = JSON.parse(localStorage.getItem('minha_lista') || '[]');
+                syncStatusEl.textContent = 'Status: Salvo localmente (Configure o JSONBin)';
+                render();
+                return;
+            }
+
+            syncStatusEl.textContent = 'Status: Sincronizando...';
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                items = Array.isArray(data.record) ? data.record : [];
+                syncStatusEl.textContent = 'Status: Sincronizado com a nuvem ✓';
+                render();
+            } catch (err) {
+                syncStatusEl.textContent = 'Status: Erro ao carregar (Carregando local)';
+                items = JSON.parse(localStorage.getItem('minha_lista') || '[]');
+                render();
+            }
+        }
+
+        // Salvar Itens na Nuvem
+        async function saveItems() {
+            localStorage.setItem('minha_lista', JSON.stringify(items));
+            if (BIN_ID === 'SEU_BIN_ID_AQUI') return;
+
+            syncStatusEl.textContent = 'Status: Salvando...';
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(items)
+                });
+                if (res.ok) syncStatusEl.textContent = 'Status: Salvo na nuvem ✓';
+            } catch (err) {
+                syncStatusEl.textContent = 'Status: Erro ao salvar na nuvem';
+            }
+        }
+
+        // Adicionar Item
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newItem = {
+                id: Date.now(),
+                name: document.getElementById('item-name').value.trim(),
+                qty: parseFloat(document.getElementById('item-qty').value),
+                price: parseFloat(document.getElementById('item-price').value) || 0,
+                category: document.getElementById('item-category').value,
+                completed: false
+            };
+
+            items.push(newItem);
+            form.reset();
+            document.getElementById('item-qty').value = '1';
+            render();
+            saveItems();
+        });
+
+        // Alternar Estado (Comprado / Pendente)
+        function toggleItem(id) {
+            items = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+            render();
+            saveItems();
+        }
+
+        // Deletar Item
+        function deleteItem(id) {
+            items = items.filter(item => item.id !== id);
+            render();
+            saveItems();
+        }
+
+        // Renderizar Lista
+        function render() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            listContainer.innerHTML = '';
+
+            const filteredItems = items.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm);
+                const matchesFilter = currentFilter === 'all' ? true : 
+                                      currentFilter === 'completed' ? item.completed : !item.completed;
+                return matchesSearch && matchesFilter;
+            });
+
+            if (filteredItems.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-8 text-gray-400">Nenhum item encontrado</div>`;
+                calculateTotal();
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const el = document.createElement('div');
+                el.className = `flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm transition border-l-4 ${item.completed ? 'border-gray-400 opacity-60' : 'border-brand-500'}`;
+                
+                const itemTotal = (item.qty * item.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                el.innerHTML = `
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="toggleItem(${item.id})">
+                        <input type="checkbox" ${item.completed ? 'checked' : ''} class="w-5 h-5 text-brand-600 rounded">
+                        <div>
+                            <span class="font-semibold ${item.completed ? 'line-through text-gray-400' : ''}">${item.name}</span>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                <span>${item.qty}x</span> • <span>${item.category}</span>
+                                ${item.price > 0 ? `• <span>R$ ${item.price.toFixed(2)} un.</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-sm ${item.completed ? 'text-gray-400' : 'text-brand-600 dark:text-brand-400'}">${itemTotal}</span>
+                        <button onclick="deleteItem(${item.id})" class="text-gray-400 hover:text-red-500 p-1">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(el);
+            });
+
+            calculateTotal();
+        }
+
+        // Calcular Total Geral
+        function calculateTotal() {
+            const total = items.reduce((acc, item) => acc + (item.qty * item.price), 0);
+            totalPriceEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Filtros e Busca
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700');
+                e.target.className = 'filter-btn text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-600 text-white';
+                currentFilter = e.target.dataset.filter;
+                render();
+            });
+        });
+
+        document.getElementById('search-input').addEventListener('input', render);
+
+        // Alternar Modo Escuro
+        function initTheme() {
+            const toggle = document.getElementById('theme-toggle');
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+            toggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+            });
+        }
+    </script>
+</body>
+</html>
