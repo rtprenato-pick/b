@@ -7,8 +7,10 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Biblioteca para ler/gerar arquivos Excel (.xlsx) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- BIBLIOTECA NECESSÁRIA PARA O EXCEL FUNCIONAR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -34,9 +36,9 @@
                 </h1>
                 <p class="text-xs text-gray-500 dark:text-gray-400" id="sync-status">Status: Carregando dados...</p>
             </div>
-            
+
+            <!-- BOTÕES DE EXCEL E TEMA NO CABEÇALHO -->
             <div class="flex items-center gap-2">
-                <!-- Botões de Importar/Exportar Excel -->
                 <button onclick="exportToExcel()" title="Exportar para Excel" class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition text-sm flex items-center gap-1 font-semibold">
                     <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Exportar</span>
                 </button>
@@ -109,7 +111,7 @@
 
     </div>
 
-    <!-- Vinculação do Script Externo -->
+    <!-- Script Principal -->
     <script src="script.js"></script>
 </body>
 </html>
