@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamento de Supermercado - 2 Pessoas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #2980b9;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .category-header {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e8f8f5;
+            color: #27ae60;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Orçamento de Supermercado</h1>
+    <p class="subtitle">Estimativa mensal para duas pessoas (todas as refeições em casa)</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Categoria / Item</th>
+                <th>Qtd. Estimada</th>
+                <th>Valor Unit./Médio</th>
+                <th>Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- DESPENSA -->
+            <tr class="category-header"><td colspan="4">DESPENSA & BÁSICOS</td></tr>
+            <tr><td>Arroz (tipo 1)</td><td>10 kg</td><td>R$ 28,00</td><td>R$ 56,00</td></tr>
+            <tr><td>Feijão carioca ou preto</td><td>4 kg</td><td>R$ 9,00</td><td>R$ 36,00</td></tr>
+            <tr><td>Óleo de soja</td><td>3 un. (900ml)</td><td>R$ 7,50</td><td>R$ 22,50</td></tr>
+            <tr><td>Azeite de oliva</td><td>1 un. (500ml)</td><td>R$ 35,00</td><td>R$ 35,00</td></tr>
+            <tr><td>Açúcar refinado / cristal</td><td>3 kg</td><td>R$ 5,00</td><td>R$ 15,00</td></tr>
+            <tr><td>Sal refinado</td><td>1 kg</td><td>R$ 3,50</td><td>R$ 3,50</td></tr>
+            <tr><td>Macarrão</td><td>4 pct (500g)</td><td>R$ 5,00</td><td>R$ 20,00</td></tr>
+            <tr><td>Molho de tomate</td><td>6 un.</td><td>R$ 3,50</td><td>R$ 21,00</td></tr>
+            <tr><td>Farinha de trigo / mandioca</td><td>2 kg</td><td>R$ 6,00</td><td>R$ 12,00</td></tr>
+            <tr><td>Café torrado e moído</td><td>3 pct (500g)</td><td>R$ 18,00</td><td>R$ 54,00</td></tr>
+
+            <!-- CAFÉ & LANCHES -->
+            <tr class="category-header"><td colspan="4">CAFÉ DA MANHÃ & LANCHES</td></tr>
+            <tr><td>Leite integral ou desnatado</td><td>12 litros</td><td>R$ 5,50</td><td>R$ 66,00</td></tr>
+            <tr><td>Pão de forma ou francês</td><td>8 pacotes</td><td>R$ 8,00</td><td>R$ 64,00</td></tr>
+            <tr><td>Manteiga ou margarina</td><td>2 potes (500g)</td><td>R$ 11,00</td><td>R$ 22,00</td></tr>
+            <tr><td>Requeijão ou creme de ricota</td><td>2 potes</td><td>R$ 9,00</td><td>R$ 18,00</td></tr>
+            <tr><td>Iogurte natural ou frutas</td><td>6 packs</td><td>R$ 7,50</td><td>R$ 45,00</td></tr>
+            <tr><td>Biscoitos, torradas ou aveia</td><td>5 unidades</td><td>R$ 6,50</td><td>R$ 32,50</td></tr>
+
+            <!-- PROTEÍNAS -->
+            <tr class="category-header"><td colspan="4">PROTEÍNAS</td></tr>
+            <tr><td>Carne Bovina (patinho/acém)</td><td>5 kg</td><td>R$ 38,00</td><td>R$ 190,00</td></tr>
+            <tr><td>Frango (peito e cortes)</td><td>6 kg</td><td>R$ 16,00</td><td>R$ 96,00</td></tr>
+            <tr><td>Ovos (cartela com 30)</td><td>3 cartelas</td><td>R$ 22,00</td><td>R$ 66,00</td></tr>
+            <tr><td>Carne suína ou Peixe</td><td>2 kg</td><td>R$ 25,00</td><td>R$ 50,00</td></tr>
+            <tr><td>Presunto e queijo fatiado</td><td>400g cada</td><td>R$ 25,00</td><td>R$ 50,00</td></tr>
+
+            <!-- HORTIFRÚTI -->
+            <tr class="category-header"><td colspan="4">HORTIFRÚTI</td></tr>
+            <tr><td>Batata e Mandioca</td><td>5 kg</td><td>R$ 7,00</td><td>R$ 35,00</td></tr>
+            <tr><td>Cebola e Alho</td><td>2kg + 300g</td><td>-</td><td>R$ 19,50</td></tr>
+            <tr><td>Tomate</td><td>4 kg</td><td>R$ 9,00</td><td>R$ 36,00</td></tr>
+            <tr><td>Alface, Couve e Folhas</td><td>8 maços</td><td>R$ 3,50</td><td>R$ 28,00</td></tr>
+            <tr><td>Legumes variados</td><td>6 kg</td><td>R$ 7,00</td><td>R$ 42,00</td></tr>
+            <tr><td>Frutas variadas da estação</td><td>3 kits</td><td>R$ 45,00</td><td>R$ 135,00</td></tr>
+
+            <!-- LIMPEZA & HIGIENE -->
+            <tr class="category-header"><td colspan="4">LIMPEZA & HIGIENE PESSOAL</td></tr>
+            <tr><td>Papel higiênico (fardo)</td><td>2 pacotes</td><td>R$ 22,00</td><td>R$ 44,00</td></tr>
+            <tr><td>Sabão em pó / líquido</td><td>1 un.</td><td>R$ 28,00</td><td>R$ 28,00</td></tr>
+            <tr><td>Amaciante de roupas</td><td>1 un. (2L)</td><td>R$ 15,00</td><td>R$ 15,00</td></tr>
+            <tr><td>Detergente líquido</td><td>4 un.</td><td>R$ 2,50</td><td>R$ 10,00</td></tr>
+            <tr><td>Desinfetante e Multiuso</td><td>2 un.</td><td>R$ 8,00</td><td>R$ 16,00</td></tr>
+            <tr><td>Sabonete e Creme dental</td><td>Kits</td><td>-</td><td>R$ 25,00</td></tr>
+            <tr><td>Esponjas e sacos de lixo</td><td>Kits</td><td>R$ 20,00</td><td>R$ 20,00</td></tr>
+
+            <!-- TOTAL -->
+            <tr class="total-row">
+                <td colspan="3">TOTAL GERAL ESTIMADO</td>
+                <td>R$ 1.258,50</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
