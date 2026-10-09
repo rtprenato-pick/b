@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Consórcio Imobiliário</title>
+  <!-- Chart.js para o gráfico de evolução -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #16a34a;
+      --primary-hover: #15803d;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    p.subtitle {
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .metric-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 320px;
+      width: 100%;
+    }
+
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      position: sticky;
+      top: 0;
+      padding: 10px 12px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Simulador de Consórcio Imobiliário</h1>
+  <p class="subtitle">Simule o valor da parcela inicial, taxas de serviço, seguro e a projeção com reajuste anual (INCC/IPCA).</p>
+
+  <div class="grid">
+    <!-- Form de Parâmetros -->
+    <div class="card">
+      <div class="form-group">
+        <label for="valorCarta">Valor Inicial da Carta (R$)</label>
+        <input type="number" id="valorCarta" value="310000" step="5000">
+      </div>
+
+      <div class="form-group">
+        <label for="prazoMeses">Prazo do Plano (Meses)</label>
+        <input type="number" id="prazoMeses" value="180" step="12">
+      </div>
+
+      <div class="form-group">
+        <label for="taxaAdmin">Taxa de Administração Total (%)</label>
+        <input type="number" id="taxaAdmin" value="14" step="0.5">
+      </div>
+
+      <div class="form-group">
+        <label for="fundoReserva">Fundo de Reserva Total (%)</label>
+        <input type="number" id="fundoReserva" value="2" step="0.5">
+      </div>
+
+      <div class="form-group">
+        <label for="reajusteAnual">Reajuste Anual Estimado (%) - INCC/IPCA</label>
+        <input type="number" id="reajusteAnual" value="5.5" step="0.5">
+      </div>
+
+      <button onclick="calcularConsorcio()">Simular Consórcio</button>
+    </div>
+
+    <!-- Indicadores e Gráfico -->
+    <div>
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="metric-title">Parcela Inicial</div>
+          <div class="metric-value" id="parcelaInicial">R$ 0,00</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Taxa Admin (Total)</div>
+          <div class="metric-value" id="totalTaxaAdmin">R$ 0,00</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Custo do Serviço (%)</div>
+          <div class="metric-value" id="percentualCusto">0%</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Carta Final (Est. 15 yrs)</div>
+          <div class="metric-value" id="cartaFinal">R$ 0,00</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-container">
+          <canvas id="graficoConsorcio"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela com reajustes anuais -->
+  <div class="card">
+    <h2 style="font-size: 1.2rem; margin-bottom: 16px;">Evolução Ano a Ano (Com Reajuste Anual)</h2>
+    <div class="table-container">
+      <table id="tabelaConsorcio">
+        <thead>
+          <tr>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Valor da Carta (R$)</th>
+            <th>Parcela Mensal (R$)</th>
+            <th>Fundo Comum (R$)</th>
+            <th>Taxa Admin (R$)</th>
+            <th>Total Acumulado Pago (R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Preenchido via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let chartInstance = null;
+
+  function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function calcularConsorcio() {
+    let valorCartaBase = parseFloat(document.getElementById('valorCarta').value);
+    const prazoMeses = parseInt(document.getElementById('prazoMeses').value);
+    const taxaAdminPct = parseFloat(document.getElementById('taxaAdmin').value) / 100;
+    const fundoReservaPct = parseFloat(document.getElementById('fundoReserva').value) / 100;
+    const reajusteAnualPct = parseFloat(document.getElementById('reajusteAnual').value) / 100;
+
+    // Cálculo da Parcela Inicial (Sem Reajuste)
+    const taxaAdminInicial = (valorCartaBase * taxaAdminPct) / prazoMeses;
+    const fundoReservaInicial = (valorCartaBase * fundoReservaPct) / prazoMeses;
+    const fundoComumInicial = valorCartaBase / prazoMeses;
+    const parcelaInicial = fundoComumInicial + taxaAdminInicial + fundoReservaInicial;
+
+    document.getElementById('parcelaInicial').innerText = formatarMoeda(parcelaInicial);
+    document.getElementById('totalTaxaAdmin').innerText = formatarMoeda(valorCartaBase * taxaAdminPct);
+    document.getElementById('percentualCusto').innerText = ((taxaAdminPct + fundoReservaPct) * 100).toFixed(1) + '%';
+
+    const tabelaBody = document.querySelector('#tabelaConsorcio tbody');
+    tabelaBody.innerHTML = '';
+
+    let cartaAtual = valorCartaBase;
+    let totalAcumuladoPago = 0;
+
+    const anosRotulos = [];
+    const historicoCarta = [];
+    const historicoParcela = [];
+
+    const totalAnos = Math.ceil(prazoMeses / 12);
+
+    for (let ano = 1; ano <= totalAnos; ano++) {
+      if (ano > 1) {
+        cartaAtual *= (1 + reajusteAnualPct);
+      }
+
+      const fundoComum = cartaAtual / prazoMeses;
+      const taxaAdmin = (cartaAtual * taxaAdminPct) / prazoMeses;
+      const fundoReserva = (cartaAtual * fundoReservaPct) / prazoMeses;
+      const parcelaMensalAno = fundoComum + taxaAdmin + fundoReserva;
+
+      const mesesNoAno = Math.min(12, prazoMeses - (ano - 1) * 12);
+      totalAcumuladoPago += parcelaMensalAno * mesesNoAno;
+
+      anosRotulos.push(`Ano ${ano}`);
+      historicoCarta.push(cartaAtual);
+      historicoParcela.push(parcelaMensalAno);
+
+      const mesExibicao = (ano - 1) * 12 + 1;
+
+      tabelaBody.innerHTML += `
+        <tr>
+          <td>Ano ${ano}</td>
+          <td>Mês ${mesExibicao}</td>
+          <td>${formatarMoeda(cartaAtual)}</td>
+          <td><strong>${formatarMoeda(parcelaMensalAno)}</strong></td>
+          <td>${formatarMoeda(fundoComum)}</td>
+          <td>${formatarMoeda(taxaAdmin)}</td>
+          <td>${formatarMoeda(totalAcumuladoPago)}</td>
+        </tr>
+      `;
+    }
+
+    document.getElementById('cartaFinal').innerText = formatarMoeda(cartaAtual);
+
+    atualizarGrafico(anosRotulos, historicoCarta, historicoParcela);
+  }
+
+  function atualizarGrafico(rotulos, cartas, parcelas) {
+    const ctx = document.getElementById('graficoConsorcio').getContext('2d');
+
+    if (chartInstance) {
+      chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rotulos,
+        datasets: [
+          {
+            label: 'Valor Atualizado da Carta de Crédito (R$)',
+            data: cartas,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+            yAxisID: 'y1',
+            fill: true
+          },
+          {
+            label: 'Valor Atualizado da Parcela Mensal (R$)',
+            data: parcelas,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            yAxisID: 'y2',
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y1: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Valor da Carta (R$)' },
+            ticks: {
+              callback: value => 'R$ ' + (value / 1000).toFixed(0) + 'k'
+            }
+          },
+          y2: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Parcela Mensal (R$)' },
+            grid: { drawOnChartArea: false },
+            ticks: {
+              callback: value => 'R$ ' + value.toFixed(0)
+            }
+          }
+        }
+      }
+    });
+  }
+
+  window.onload = calcularConsorcio;
+</script>
+
+</body>
+</html>
